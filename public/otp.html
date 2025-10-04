@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>OTP XL</title>
+<body>
+  <h3>OTP XL</h3>
+
+  <div>
+    <label>Nomor HP:</label>
+    <input id="phone" placeholder="0877xxxxxxxx">
+    <button id="btnReq">Minta OTP</button>
+  </div>
+
+  <div style="margin-top:8px;">
+    <label>Kode OTP:</label>
+    <input id="otp" placeholder="6 digit">
+    <button id="btnVer">Verifikasi</button>
+  </div>
+
+  <pre id="out" style="margin-top:12px; background:#f3f3f3; padding:8px; white-space:pre-wrap;"></pre>
+
+  <script>
+    // Frontend & API berada pada domain yang sama (Vercel):
+    const REQ = "/api/minta-otp";
+    const VER = "/api/verif-otp";
+    const out = document.getElementById("out");
+    const j = v => { try { return JSON.stringify(v, null, 2) } catch { return String(v) } };
+    const val = id => document.getElementById(id).value.trim();
+
+    document.getElementById("btnReq").onclick = async () => {
+      const nomor_hp = val("phone");
+      if (!nomor_hp) return out.textContent = "Isi nomor HP";
+      out.textContent = "Meminta OTP...";
+      try {
+        const r = await fetch(REQ, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nomor_hp })
+        });
+        const t = await r.text(); let d; try { d = JSON.parse(t) } catch { d = t }
+        out.textContent = j(d);
+      } catch (e) { out.textContent = "Gagal minta OTP: " + e }
+    };
+
+    document.getElementById("btnVer").onclick = async () => {
+      const nomor_hp = val("phone");
+      const kode_otp = val("otp");
+      if (!nomor_hp || !kode_otp) return out.textContent = "Isi nomor & kode OTP";
+      out.textContent = "Memverifikasi...";
+      try {
+        const r = await fetch(VER, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nomor_hp, kode_otp })
+        });
+        const t = await r.text(); let d; try { d = JSON.parse(t) } catch { d = t }
+        const tok = d?.data?.data?.access_token;
+        if (tok) d.masked_access_token = tok.slice(0,24) + "..." + tok.slice(-24);
+        out.textContent = j(d);
+      } catch (e) { out.textContent = "Gagal verifikasi: " + e }
+    };
+  </script>
+</body>
